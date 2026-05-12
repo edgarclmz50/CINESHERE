@@ -1,0 +1,6 @@
+{
+  "name": "CineSphere",
+  "description": "Una plataforma de streaming con búsqueda avanzada y gestión de lista personalizada para tus películas y series favoritas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

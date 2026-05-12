@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Helpers ---
+    function isValidWatchlistItem(data) {
+      return data.keys().hasAll(['id', 'title', 'url', 'source', 'addedAt']) 
+        && data.keys().size() <= 10
+        && data.id is string && data.id.size() <= 100
+        && data.title is string && data.title.size() <= 500
+        && data.url is string && data.url.size() <= 2000
+        && data.source is string && data.source.size() <= 200
+        && data.addedAt is string && data.addedAt.size() <= 50
+        && (!data.keys().contains('posterUrl') || (data.posterUrl is string && data.posterUrl.size() <= 2000))
+        && (!data.keys().contains('contentType') || (data.contentType in ['web', 'video']))
+        && (!data.keys().contains('mediaType') || (data.mediaType in ['movie', 'tv']))
+        && (!data.keys().contains('genres') || (data.genres is list));
+    }
+
+    function isValidStreamingService(data) {
+      return data.keys().hasAll(['id', 'name', 'url', 'logo', 'category'])
+        && data.keys().size() <= 6
+        && data.id is string && data.id.size() <= 100
+        && data.name is string && data.name.size() <= 200
+        && data.url is string && data.url.size() <= 2000
+        && data.logo is string && data.logo.size() <= 2000
+        && data.category is string && data.category.size() <= 100
+        && (!data.keys().contains('allowIframe') || (data.allowIframe is bool));
+    }
+
+    function isValidViewingHistory(data) {
+      return data.keys().hasAll(['title', 'viewedAt'])
+        && data.keys().size() == 2
+        && data.title is string && data.title.size() <= 500
+        && data.viewedAt is string && data.viewedAt.size() <= 50;
+    }
+
+    // --- Rules ---
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      
+      match /watchlist/{itemId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(itemId);
+        allow create: if isOwner(userId) && isValidId(itemId) && isValidWatchlistItem(incoming());
+        allow update: if isOwner(userId) && isValidId(itemId) && isValidWatchlistItem(incoming())
+          && incoming().id == existing().id 
+          && incoming().addedAt == existing().addedAt;
+        allow delete: if isOwner(userId) && isValidId(itemId);
+      }
+
+      match /services/{serviceId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(serviceId);
+        allow create: if isOwner(userId) && isValidId(serviceId) && isValidStreamingService(incoming());
+        allow update: if isOwner(userId) && isValidId(serviceId) && isValidStreamingService(incoming())
+          && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(serviceId);
+      }
+
+      match /history/{historyId} {
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(historyId) && isValidViewingHistory(incoming());
+        allow delete: if isOwner(userId) && isValidId(historyId);
+      }
+    }
+  }
+}

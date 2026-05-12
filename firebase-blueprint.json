@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "WatchlistItem": {
+      "title": "Watchlist Item",
+      "description": "A movie or video added to the user's watchlist.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "url": { "type": "string" },
+        "source": { "type": "string" },
+        "addedAt": { "type": "string", "format": "date-time" },
+        "posterUrl": { "type": "string" },
+        "contentType": { "type": "string", "enum": ["web", "video"] },
+        "mediaType": { "type": "string", "enum": ["movie", "tv"] },
+        "genres": { 
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["id", "title", "url", "source", "addedAt"]
+    },
+    "StreamingService": {
+      "title": "Streaming Service",
+      "description": "A streaming platform configured by the user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "logo": { "type": "string" },
+        "category": { "type": "string" },
+        "allowIframe": { "type": "boolean" }
+      },
+      "required": ["id", "name", "url", "logo", "category"]
+    },
+    "ViewingHistory": {
+      "title": "Viewing History",
+      "description": "A movie title from the user's history.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "viewedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "viewedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/watchlist/{itemId}": {
+      "schema": "WatchlistItem",
+      "description": "User's ব্যক্তিগতized watchlist."
+    },
+    "/users/{userId}/services/{serviceId}": {
+      "schema": "StreamingService",
+      "description": "User's custom streaming services."
+    },
+    "/users/{userId}/history/{historyId}": {
+      "schema": "ViewingHistory",
+      "description": "User's movie viewing history for recommendations."
+    }
+  }
+}
